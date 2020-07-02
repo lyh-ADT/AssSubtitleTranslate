@@ -48,6 +48,9 @@ export class AssSubtitleTranslateEditorProvider implements vscode.CustomTextEdit
         const scriptUri = webview.asWebviewUri(vscode.Uri.file(
             path.join(this.context.extensionPath, 'media', 'assSubtitleEditor.js')
         ));
+        const styleUri = webview.asWebviewUri(vscode.Uri.file(
+            path.join(this.context.extensionPath, 'media', 'assSubtitleEditor.css')
+        ));
 
 
         return /*html*/`
@@ -56,11 +59,10 @@ export class AssSubtitleTranslateEditorProvider implements vscode.CustomTextEdit
             <head>
                 <meta chartset="utf-8">
                 <meta name="viewport" content="width-device, initial-scale=1.0">
+                <link href="${styleUri}" rel="stylesheet" />
                 <title>My SubTitle Webview HTML</title>
             </head>
             <body>
-                <h1>My SubTitle Webview HTML</h1>
-                <textarea>asdf</textarea>
                 <script src="${scriptUri}"></script>
             </body>
             </html>

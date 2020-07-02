@@ -9,6 +9,17 @@ class SubtitleLine{
     toString(){
         return `{info:'${this.info}',content:'${this.content}'}`;
     }
+
+    render(/**@type {Element}*/parent){
+        const div = document.createElement("div");
+        div.className = "line";
+        div.innerHTML = /*html*/`
+            <p>${this.info}</p>
+            <h4>${this.content}</h4>
+            <textarea class="editarea">${this.content}</textarea>
+        `;
+        parent.appendChild(div);
+    }
 }
 class AssSubtitle{
     
@@ -23,8 +34,15 @@ class AssSubtitle{
             let match = line.match(/(Dialogue: \d+,\d+:\d+:\d+.\d+,\d+:\d+:\d+.\d+,\w+,,\d,\d,\d,,)(.*)/);
             lines.push(new SubtitleLine(0, match[1], match[2]));
         }
-        document.querySelector("h1").innerHTML = lines.join("<br>");
         return lines;
+    }
+
+    render(/**@type {Element}*/parent){
+        const div = document.createElement("div");
+        for(let line of this.lines){
+            line.render(div);
+        }
+        parent.appendChild(div);
     }
 }
 
@@ -34,7 +52,7 @@ class AssSubtitle{
     
     function updateContent(/**@type {string}*/text){
         // document.querySelector("h1").textContent = text;
-        new AssSubtitle(text);
+        new AssSubtitle(text).render(document.body);
     }
 
     window.addEventListener("message", event=>{
