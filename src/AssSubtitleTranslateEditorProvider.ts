@@ -1,5 +1,7 @@
 import * as vscode from  'vscode';
 
+import * as path from 'path';
+
 export class AssSubtitleTranslateEditorProvider implements vscode.CustomTextEditorProvider {
     public static register(context: vscode.ExtensionContext): vscode.Disposable{
         const provider = new AssSubtitleTranslateEditorProvider(context);
@@ -18,6 +20,7 @@ export class AssSubtitleTranslateEditorProvider implements vscode.CustomTextEdit
         webviewPanel.webview.html = this.getHtmlForWebview(webviewPanel.webview);
 
         const changeDocumentSubscription = vscode.workspace.onDidChangeTextDocument(e=>{
+            console.log(document.getText());
             if(e.document.uri.toString() === document.uri.toString()){
                 webviewPanel.webview.postMessage({
                     type: "update",
@@ -26,6 +29,14 @@ export class AssSubtitleTranslateEditorProvider implements vscode.CustomTextEdit
             }
         });
 
+        webviewPanel.onDidDispose(()=>{
+            changeDocumentSubscription.dispose();
+        });
+
+        webviewPanel.webview.onDidReceiveMessage(e=>{
+            console.log(e)
+        })
+
         webviewPanel.webview.postMessage({
             type: "update",
             text: document.getText()
@@ -33,6 +44,12 @@ export class AssSubtitleTranslateEditorProvider implements vscode.CustomTextEdit
     }
 
     private getHtmlForWebview(webview: vscode.Webview): string {
+
+        const scriptUri = webview.asWebviewUri(vscode.Uri.file(
+            path.join(this.context.extensionPath, 'media', 'assSubtitleEditor.js')
+        ));
+
+
         return /*html*/`
             <!DOCTYPE html>
             <html lang="en">
@@ -43,6 +60,8 @@ export class AssSubtitleTranslateEditorProvider implements vscode.CustomTextEdit
             </head>
             <body>
                 <h1>My SubTitle Webview HTML</h1>
+                <textarea>asdf</textarea>
+                <script src="${scriptUri}"></script>
             </body>
             </html>
         `;
