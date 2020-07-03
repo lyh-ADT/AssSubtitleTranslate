@@ -18,6 +18,7 @@ export class AssSubtitleTranslateEditorProvider implements vscode.CustomTextEdit
             enableScripts: true
         };
         webviewPanel.webview.html = this.getHtmlForWebview(webviewPanel.webview);
+        
 
         const changeDocumentSubscription = vscode.workspace.onDidChangeTextDocument(e=>{
             console.log(document.getText());

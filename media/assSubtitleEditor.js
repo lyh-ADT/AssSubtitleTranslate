@@ -1,9 +1,12 @@
 // @ts-check
 class SubtitleLine{
-    constructor(/**@type {number}*/line_number, /**@type {string}*/info, /**@type {string}*/content){
+    constructor(/**@type {AssSubtitle}*/assSubtitle, /**@type {number}*/line_number, /**@type {string}*/info, /**@type {string}*/content){
+        this.assSubtitle = assSubtitle;
         this.line_number = line_number;
         this.info = info;
         this.content = content;
+        this.editArea = null;
+        this.containor = null;
     }
 
     toString(){
@@ -11,20 +14,45 @@ class SubtitleLine{
     }
 
     render(/**@type {Element}*/parent){
-        const div = document.createElement("div");
+        const div = this.containor = document.createElement("div");
         div.className = "line";
         div.innerHTML = /*html*/`
             <p>${this.info}</p>
             <h4>${this.content}</h4>
-            <textarea class="editarea">${this.content}</textarea>
         `;
+        div.appendChild(this.getEditArea(this.content));
         parent.appendChild(div);
+    }
+
+    getEditArea(/**@type {string}*/content){
+        this.editArea = document.createElement("textarea");
+        this.editArea.className = "editarea";
+        this.editArea.textContent = content;
+        this.editArea.oninput=this.onEditAreaInput;
+        return this.editArea;
+    }
+
+    focus(){
+        console.assert(this.containor != null && this.editArea != null, "haven't render this");
+        window.scroll(0, this.containor.offsetTop-this.containor.offsetHeight);
+        this.editArea.select();
+    }
+
+    onEditAreaInput = ()=>{
+        const content_length = this.editArea.value.length;
+        const inputChar = this.editArea.value[content_length-1];
+        if(inputChar == "\n"){
+            this.editArea.value = this.editArea.value.slice(0, content_length-1);
+            this.assSubtitle.goToEditArea(this.line_number+1);
+        }
     }
 }
 class AssSubtitle{
     
-    constructor(/**@type {string}*/text){
+    constructor(vscode, /**@type {string}*/text){
+        this.vscode = vscode;
         this.lines = this.parse(text);
+        this.editting_index = 0;
     }
 
     parse(/**@type {string}*/text){
@@ -32,7 +60,7 @@ class AssSubtitle{
         const dialogue_re = /Dialogue: \d+,\d+:\d+:\d+.\d+,\d+:\d+:\d+.\d+,\w+,,\d,\d,\d,,(.*)/g;
         for(let line of text.match(dialogue_re)){
             let match = line.match(/(Dialogue: \d+,\d+:\d+:\d+.\d+,\d+:\d+:\d+.\d+,\w+,,\d,\d,\d,,)(.*)/);
-            lines.push(new SubtitleLine(0, match[1], match[2]));
+            lines.push(new SubtitleLine(this, lines.length, match[1], match[2]));
         }
         return lines;
     }
@@ -44,6 +72,14 @@ class AssSubtitle{
         }
         parent.appendChild(div);
     }
+
+    goToEditArea(/**@type {number}*/index){
+        this.lines[index].focus();
+    }
+
+    consoleLog(...param){
+        this.vscode.postMessage(param);
+    }
 }
 
 (function(){
@@ -52,7 +88,7 @@ class AssSubtitle{
     
     function updateContent(/**@type {string}*/text){
         // document.querySelector("h1").textContent = text;
-        new AssSubtitle(text).render(document.body);
+        new AssSubtitle(vscode, text).render(document.body);
     }
 
     window.addEventListener("message", event=>{
