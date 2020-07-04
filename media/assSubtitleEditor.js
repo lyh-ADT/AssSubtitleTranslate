@@ -75,11 +75,19 @@ class AssSubtitle{
         "Text": ".*"
     };
 
-    static getDialogueRegExpFromFormat(/**@type {string}*/format_str){
+    getDialogueRegExpFromFormat(/**@type {string}*/format_str){
         let format_regexp = [];
         for(const format of format_str.split(",")){
             const reg = AssSubtitle.EventFormat[format.trim()];
-            console.assert(reg != null, "wrong format: "+format+reg);
+            if(reg == null){
+                this.showError("Unknown Info: "+format.trim());
+                let supported_infos = [];
+                for(let i in AssSubtitle.EventFormat){
+                    supported_infos.push(i);
+                }
+                this.log("Only support info:", supported_infos);
+                return;
+            }
             if(format.trim() == "Text"){
                 format_regexp.push("("+reg+")");
             }else{
@@ -98,19 +106,42 @@ class AssSubtitle{
 
     parse(/**@type {string}*/text){
         const events_section_index = text.search("[Events]");
+        if(events_section_index == -1){
+            this.showError("Not found [Events] Section, Please Check the File Format");
+            return;
+        }
         const events_setion = text.substring(events_section_index);
-        const events_format = events_setion.match(/Format:(.+)/)[1];
+        const events_format_match = events_setion.match(/Format:(.+)/);
+        if(events_format_match == null){
+            this.showError("Not found Format Line, Please Check the File Format");
+            this.log(`[Events] Section should contain one line like: "Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text" to specify the format of dialogue.`)
+            return;
+        }
+        const events_format = events_format_match[1];
 
-        const dialogue_re = AssSubtitle.getDialogueRegExpFromFormat(events_format);
+        this.log("found format", events_format);
+
+        const dialogue_re = this.getDialogueRegExpFromFormat(events_format);
+
+        console.log("format matcher", dialogue_re);
+
         let lines = [];
 
         // @ts-ignore
         for(let line of events_setion.matchAll(dialogue_re)){
             const content = line[1];
+            if(content == undefined){
+                this.showError("Found empty line");
+                this.log("Found empty line", line);
+                return;
+            }
             const info = line[0].substring(0, line[0].indexOf(content));
             lines.push(new SubtitleLine(this, lines.length, info, content));
         }
         this.lines = lines;
+        if(lines.length == 0){
+            this.log("Not found any lines, you should use AssSubtitleTranslateEditor with a pre make .ass file");
+        }
     }
 
     render(/**@type {Element}*/parent){
@@ -133,6 +164,20 @@ class AssSubtitle{
         console.log(index, offset);
     }
 
+    log(...param){
+        this.postMessage({
+            type: "log",
+            message: param.join(" ")
+        });
+    }
+
+    showError(message){
+        this.postMessage({
+            type: "error",
+            message: message
+        });
+    }
+
     postMessage(param){
         this.vscode.postMessage(param);
     }
@@ -145,6 +190,7 @@ class AssSubtitle{
     const assSubtitle = new AssSubtitle(vscode);
     
     function updateContent(/**@type {string}*/text){
+        assSubtitle.log("Update from text document change");
         assSubtitle.parse(text);
         assSubtitle.render(document.body);
     }

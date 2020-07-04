@@ -5,6 +5,7 @@ A VSCode extension try to make translating a `.ass` graceful.
 ## Features
 - Parse a `.ass` into a Custom Text Editor
 - Auto jump to next line when input `Enter(\n)`
+- It will replace the original line with newly input one.
 
 ![](./media/demo.gif)
 
@@ -18,4 +19,4 @@ Still in develop.
 ✔️|jump when `enter`
 ✔️|sync with text document
 ✔️|optimize the parse file
-⬜|show message when error
+✔️|show message when error

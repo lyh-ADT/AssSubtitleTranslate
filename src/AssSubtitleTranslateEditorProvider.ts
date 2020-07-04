@@ -13,8 +13,11 @@ export class AssSubtitleTranslateEditorProvider implements vscode.CustomTextEdit
     private document:vscode.TextDocument|null = null;
     private webview:vscode.Webview|null = null;
     private lastChange : {range: vscode.Range,text:""} | null = {range:new vscode.Range(0,0,0,0),text:""};
+    private outputChannel:vscode.OutputChannel;
 
-    constructor(private readonly context: vscode.ExtensionContext){}
+    constructor(private readonly context: vscode.ExtensionContext){
+        this.outputChannel = vscode.window.createOutputChannel("AssSubtitleTranslateEditor");
+    }
     
     resolveCustomTextEditor(document: vscode.TextDocument, webviewPanel: vscode.WebviewPanel, token: vscode.CancellationToken): void | Thenable<void> {
         webviewPanel.webview.options = {
@@ -36,6 +39,18 @@ export class AssSubtitleTranslateEditorProvider implements vscode.CustomTextEdit
             switch(e.type){
                 case "update":
                     this.updateDocumentWithLine(document, e.line);
+                    return;
+                case "info":
+                    vscode.window.showInformationMessage(e.message);
+                    this.outputChannel.appendLine(e.message);
+                    return;
+                case "error":
+                    vscode.window.showErrorMessage(e.message);
+                    this.outputChannel.appendLine(e.message);
+                    this.outputChannel.show();
+                    return;
+                case "log":
+                    this.outputChannel.appendLine(e.message);
                     return;
             }
         })
