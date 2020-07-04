@@ -15,13 +15,13 @@ class SubtitleLine{
 
     render(/**@type {Element}*/parent){
         const div = this.containor = document.createElement("div");
+        parent.appendChild(div);
         div.className = "line";
         div.innerHTML = /*html*/`
             <p>${this.info}</p>
             <h4>${this.content}</h4>
         `;
         div.appendChild(this.getEditArea(this.content));
-        parent.appendChild(div);
     }
 
     getEditArea(/**@type {string}*/content){
@@ -32,10 +32,13 @@ class SubtitleLine{
         return this.editArea;
     }
 
-    focus(){
+    focus(offset){
         console.assert(this.containor != null && this.editArea != null, "haven't render this");
         window.scroll(0, this.containor.offsetTop-this.containor.offsetHeight);
         this.editArea.select();
+        if(offset > 0){
+            this.editArea.setSelectionRange(offset, offset);
+        }
     }
 
     onEditAreaInput = ()=>{
@@ -43,9 +46,10 @@ class SubtitleLine{
         const inputChar = this.editArea.value[content_length-1];
         if(inputChar == "\n"){
             this.editArea.value = this.editArea.value.slice(0, content_length-1);
-            this.assSubtitle.goToEditArea(this.line_number+1);
+            this.assSubtitle.goToEditArea(this.line_number+1, 0);
             return;
         }
+        this.assSubtitle.setEditAreaOffset(this.editArea.selectionStart);
         this.assSubtitle.postMessage({
             type: "update",
             line:{
@@ -56,33 +60,77 @@ class SubtitleLine{
     }
 }
 class AssSubtitle{
+
+    static EventFormat={
+        "Marked": "\\d",
+        "Layer": "\\d+",
+        "Start": "\\d+:\\d\\d:\\d\\d[\\.:]\\d\\d",
+        "End": "\\d+:\\d\\d:\\d\\d[\\.:]\\d\\d",
+        "Style": "\\w+",
+        "Name": "\\w*",
+        "MarginL": "\\d+",
+        "MarginR": "\\d+",
+        "MarginV": "\\d+",
+        "Effect": ".*?",
+        "Text": ".*"
+    };
+
+    static getDialogueRegExpFromFormat(/**@type {string}*/format_str){
+        let format_regexp = [];
+        for(const format of format_str.split(",")){
+            const reg = AssSubtitle.EventFormat[format.trim()];
+            console.assert(reg != null, "wrong format: "+format+reg);
+            if(format.trim() == "Text"){
+                format_regexp.push("("+reg+")");
+            }else{
+                format_regexp.push(reg);
+            }
+        }
+        return new RegExp("Dialogue: "+format_regexp.join(","), "g");
+    }
     
-    constructor(vscode, /**@type {string}*/text){
+    constructor(vscode){
         this.vscode = vscode;
-        this.lines = this.parse(text);
+        this.lines = [];
         this.editting_index = 0;
+        this.editting_offset = 0;
     }
 
     parse(/**@type {string}*/text){
+        const events_section_index = text.search("[Events]");
+        const events_setion = text.substring(events_section_index);
+        const events_format = events_setion.match(/Format:(.+)/)[1];
+
+        const dialogue_re = AssSubtitle.getDialogueRegExpFromFormat(events_format);
         let lines = [];
-        const dialogue_re = /Dialogue: \d+,\d+:\d+:\d+.\d+,\d+:\d+:\d+.\d+,\w+,,\d,\d,\d,,(.*)/g;
-        for(let line of text.match(dialogue_re)){
-            let match = line.match(/(Dialogue: \d+,\d+:\d+:\d+.\d+,\d+:\d+:\d+.\d+,\w+,,\d,\d,\d,,)(.*)/);
-            lines.push(new SubtitleLine(this, lines.length, match[1], match[2]));
+
+        // @ts-ignore
+        for(let line of events_setion.matchAll(dialogue_re)){
+            const content = line[1];
+            const info = line[0].substring(0, line[0].indexOf(content));
+            lines.push(new SubtitleLine(this, lines.length, info, content));
         }
-        return lines;
+        this.lines = lines;
     }
 
     render(/**@type {Element}*/parent){
+        document.body.innerHTML = "";
         const div = document.createElement("div");
+        parent.appendChild(div);
         for(let line of this.lines){
             line.render(div);
         }
-        parent.appendChild(div);
+        this.goToEditArea(this.editting_index, this.editting_offset);
     }
 
-    goToEditArea(/**@type {number}*/index){
-        this.lines[index].focus();
+    setEditAreaOffset(/**@type {number}*/offset){
+        this.editting_offset = offset;
+    }
+
+    goToEditArea(/**@type {number}*/index, /**@type {number}*/offset){
+        this.editting_index = index;
+        this.lines[index].focus(offset);
+        console.log(index, offset);
     }
 
     postMessage(param){
@@ -93,10 +141,12 @@ class AssSubtitle{
 (function(){
     // @ts-ignore
     const vscode = acquireVsCodeApi();
+
+    const assSubtitle = new AssSubtitle(vscode);
     
     function updateContent(/**@type {string}*/text){
-        // document.querySelector("h1").textContent = text;
-        new AssSubtitle(vscode, text).render(document.body);
+        assSubtitle.parse(text);
+        assSubtitle.render(document.body);
     }
 
     window.addEventListener("message", event=>{

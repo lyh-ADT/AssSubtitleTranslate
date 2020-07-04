@@ -10,6 +10,9 @@ export class AssSubtitleTranslateEditorProvider implements vscode.CustomTextEdit
     }
 
     private static readonly viewType = "AssSubtitleTranslate.view";
+    private document:vscode.TextDocument|null = null;
+    private webview:vscode.Webview|null = null;
+    private lastChange : {range: vscode.Range,text:""} | null = {range:new vscode.Range(0,0,0,0),text:""};
 
     constructor(private readonly context: vscode.ExtensionContext){}
     
@@ -18,16 +21,12 @@ export class AssSubtitleTranslateEditorProvider implements vscode.CustomTextEdit
             enableScripts: true
         };
         webviewPanel.webview.html = this.getHtmlForWebview(webviewPanel.webview);
+        this.document = document;
+        this.webview = webviewPanel.webview;
         
+        let lastChange = null;
 
-        const changeDocumentSubscription = vscode.workspace.onDidChangeTextDocument(e=>{
-            if(e.document.uri.toString() === document.uri.toString()){
-                webviewPanel.webview.postMessage({
-                    type: "update",
-                    text: document.getText()
-                });
-            }
-        });
+        const changeDocumentSubscription = vscode.workspace.onDidChangeTextDocument(this.onDidChangeTextDocument);
 
         webviewPanel.onDidDispose(()=>{
             changeDocumentSubscription.dispose();
@@ -72,11 +71,36 @@ export class AssSubtitleTranslateEditorProvider implements vscode.CustomTextEdit
             </html>
         `;
     }
+
+    private onDidChangeTextDocument = (e: vscode.TextDocumentChangeEvent)=>{
+        if(this.document == null || this.webview == null || e.contentChanges.length == 0){
+            return;
+        }
+        if(e.contentChanges.length == 1 && this.lastChange != null){
+            const cuurentChange = e.contentChanges[0];
+            if(this.lastChange.range.isEqual(cuurentChange.range)
+                && this.lastChange.text == cuurentChange.text){
+                this.lastChange = null;
+                return;
+            }
+        }
+        if(e.document.uri.toString() === this.document.uri.toString()){
+            this.webview.postMessage({
+                type: "update",
+                text: this.document.getText()
+            });
+        }
+    }
     
     private updateDocumentWithLine(document:vscode.TextDocument, line:any){
         const offset = document.getText().search(line.info);
         const start = document.positionAt(offset);
         const textLine = document.lineAt(start.line);
+
+        this.lastChange = {
+            range: textLine.range,
+            text: line.info+line.content
+        };
 
         const edit = new vscode.WorkspaceEdit();
         edit.replace(document.uri, textLine.range, line.info+line.content);

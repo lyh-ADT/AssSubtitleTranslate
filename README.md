@@ -17,4 +17,5 @@ Still in develop.
 ✔️|parse file
 ✔️|jump when `enter`
 ✔️|sync with text document
-⬜|optimize the parse file
+✔️|optimize the parse file
+⬜|show message when error
