@@ -14,6 +14,7 @@ Still in develop.
 ### Progress
 | |task
 |-|-
-✔️|parse filecheck
+✔️|parse file
 ✔️|jump when `enter`
-⬜|sync with text document
+✔️|sync with text document
+⬜|optimize the parse file

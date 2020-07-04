@@ -44,7 +44,15 @@ class SubtitleLine{
         if(inputChar == "\n"){
             this.editArea.value = this.editArea.value.slice(0, content_length-1);
             this.assSubtitle.goToEditArea(this.line_number+1);
+            return;
         }
+        this.assSubtitle.postMessage({
+            type: "update",
+            line:{
+                info: this.info,
+                content: this.editArea.value
+            }
+        });
     }
 }
 class AssSubtitle{
@@ -77,7 +85,7 @@ class AssSubtitle{
         this.lines[index].focus();
     }
 
-    consoleLog(...param){
+    postMessage(param){
         this.vscode.postMessage(param);
     }
 }

@@ -21,7 +21,6 @@ export class AssSubtitleTranslateEditorProvider implements vscode.CustomTextEdit
         
 
         const changeDocumentSubscription = vscode.workspace.onDidChangeTextDocument(e=>{
-            console.log(document.getText());
             if(e.document.uri.toString() === document.uri.toString()){
                 webviewPanel.webview.postMessage({
                     type: "update",
@@ -35,7 +34,11 @@ export class AssSubtitleTranslateEditorProvider implements vscode.CustomTextEdit
         });
 
         webviewPanel.webview.onDidReceiveMessage(e=>{
-            console.log(e)
+            switch(e.type){
+                case "update":
+                    this.updateDocumentWithLine(document, e.line);
+                    return;
+            }
         })
 
         webviewPanel.webview.postMessage({
@@ -70,4 +73,13 @@ export class AssSubtitleTranslateEditorProvider implements vscode.CustomTextEdit
         `;
     }
     
+    private updateDocumentWithLine(document:vscode.TextDocument, line:any){
+        const offset = document.getText().search(line.info);
+        const start = document.positionAt(offset);
+        const textLine = document.lineAt(start.line);
+
+        const edit = new vscode.WorkspaceEdit();
+        edit.replace(document.uri, textLine.range, line.info+line.content);
+        vscode.workspace.applyEdit(edit);
+    }
 }

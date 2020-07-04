@@ -10,17 +10,10 @@
 		"Other"
 	],
 	"activationEvents": [
-		// "onCommand:asssubtitletranslate.helloWorld"
 		"onCustomEditor:AssSubtitleTranslate.view"
 	],
 	"main": "./out/extension.js",
 	"contributes": {
-		// "commands": [
-		// 	{
-		// 		"command": "asssubtitletranslate.helloWorld",
-		// 		"title": "Hello World"
-		// 	}
-		// ],
 		"customEditors": [
 			{
 				"viewType": "AssSubtitleTranslate.view",
