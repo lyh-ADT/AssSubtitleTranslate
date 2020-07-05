@@ -1,0 +1,23 @@
+*{
+    /* color: var(--vscode-editor-foreground); */
+    color: var(--vscode-settings-modified-item-indicator);
+}
+
+.line{
+    padding: 0 5px;
+    margin: 5px 0;
+    /* box-shadow: 5px 5px 5px black; */
+    /* border: 1px solid var(--vscode-editor-foreground); */
+}
+.line:hover{
+    border: 1px solid var(--vscode-peekView-border);
+}
+.editarea{
+    width: 95%;
+    background-color: var(--vscode-settings-textInputBackground);
+    border: 0;
+    resize: none;
+}
+.editarea:focus{
+    border: 0;
+}
